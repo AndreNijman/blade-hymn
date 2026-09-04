@@ -1,0 +1,151 @@
+{
+  "player": {
+    "melee1": {
+      "impact": [3],
+      "size": [30, 35],
+      "rel_pos": [25, 0],
+      "damage": 5,
+      "knockback": 1,
+      "stun": false
+    },
+    "melee2": {
+      "impact": [2, 4],
+      "size": [30, 35],
+      "rel_pos": [25, 0],
+      "damage": 3,
+      "knockback": 1,
+      "stun": false
+    },
+    "melee3": {
+      "impact": [8],
+      "size": [35, 40],
+      "rel_pos": [30, 0],
+      "damage": 8,
+      "knockback": 15,
+      "stun": true
+    },
+    "air1": {
+      "impact": [1],
+      "size": [30, 22],
+      "rel_pos": [30, 5],
+      "damage": 2,
+      "knockback": 1,
+      "stun": false
+    },
+    "air2": {
+      "impact": [1],
+      "size": [30, 22],
+      "rel_pos": [30, 5],
+      "damage": 1,
+      "knockback": 1,
+      "stun": false
+    }
+  },
+  "basic": {
+    "contact" : {
+      "size": [15, 20],
+      "rel_pos": [0, 0],
+      "damage": 4,
+      "knockback": 3,
+      "stun": true
+    },
+    "melee1": {
+      "impact": [9],
+      "size": [40, 50],
+      "rel_pos": [30, 0],
+      "damage": 6,
+      "knockback": 2,
+      "stun": false
+    },
+    "melee2": {
+      "impact": [6],
+      "size": [33, 10],
+      "rel_pos": [30, 5],
+      "damage": 10,
+      "knockback": 5,
+      "stun": true
+    }
+  },
+  "samurai": {
+    "contact" : {
+      "size": [20, 40],
+      "rel_pos": [0, 0],
+      "damage": 4,
+      "knockback": 3,
+      "stun": true
+    },
+    "melee1": {
+      "impact": [4],
+      "size": [45, 50],
+      "rel_pos": [28, 0],
+      "damage": 10,
+      "knockback": 3,
+      "stun": false
+    },
+    "melee2": {
+      "impact": [5],
+      "size": [45, 50],
+      "rel_pos": [28, 0],
+      "damage": 12,
+      "knockback": 4,
+      "stun": false
+    },
+    "melee3": {
+      "impact": [3],
+      "size": [40, 10],
+      "rel_pos": [30, 15],
+      "damage": 7,
+      "knockback": 5,
+      "stun": false
+    },
+    "block": {
+      "size": [1000, 70],
+      "rel_pos": [0, 0],
+      "damage": 4,
+      "knockback": 0,
+      "stun": true
+    }
+  },
+  "archer": {
+    "contact" : {
+      "size": [20, 40],
+      "rel_pos": [0, 0],
+      "damage": 4,
+      "knockback": 3,
+      "stun": true
+    },
+    "melee1": {
+      "impact": [4],
+      "size": [45, 50],
+      "rel_pos": [30, 0],
+      "damage": 10,
+      "knockback": 4,
+      "stun": false
+    },
+    "melee2": {
+      "impact": [4],
+      "size": [45, 50],
+      "rel_pos": [30, 0],
+      "damage": 12,
+      "knockback": 5,
+      "stun": false
+    },
+    "melee3": {
+      "impact": [5],
+      "size": [40, 10],
+      "rel_pos": [30, 0],
+      "damage": 15,
+      "knockback": 16,
+      "stun": true
+    },
+    "shoot": {
+      "impact": [14],
+      "size": [10, 2],
+      "rel_pos": [10, 0],
+      "damage": 6,
+      "knockback": 5,
+      "stun": true,
+      "velocity": [500, 0]
+    }
+  }
+}
