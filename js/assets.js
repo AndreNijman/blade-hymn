@@ -17,6 +17,7 @@ function loadImage(url) {
 
 export async function loadAssets() {
   const folders = {};
+  const images = {};
   const jobs = [];
   for (const [folder, files] of Object.entries(manifestJson.folders)) {
     jobs.push(
@@ -25,9 +26,12 @@ export async function loadAssets() {
       })
     );
   }
+  for (const [name, path] of Object.entries(manifestJson.singles || {})) {
+    jobs.push(loadImage(path).then((img) => { images[name] = img; }));
+  }
   await Promise.all(jobs);
 
-  return { folders };
+  return { folders, images };
 }
 
 // Resolves "assets/graphics/player/idle" style keys directly.

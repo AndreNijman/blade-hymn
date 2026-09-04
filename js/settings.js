@@ -80,22 +80,22 @@ export function isBound(code) {
 }
 
 // pygame.key.name() equivalents for the tutorial text (code/text.py renders
-// e.g. "Move with RIGHT and LEFT.").
+// e.g. "Move with right and left.").
 const KEY_NAMES = {
-  ArrowRight: "RIGHT", ArrowLeft: "LEFT", ArrowUp: "UP", ArrowDown: "DOWN",
-  Space: "SPACE", Enter: "RETURN", Escape: "ESCAPE", Tab: "TAB",
-  ShiftLeft: "LSHIFT", ShiftRight: "RSHIFT",
-  ControlLeft: "LCTRL", ControlRight: "RCTRL",
-  AltLeft: "LALT", AltRight: "RALT",
-  Backspace: "BACKSPACE", CapsLock: "CAPS LOCK",
+  ArrowRight: "right", ArrowLeft: "left", ArrowUp: "up", ArrowDown: "down",
+  Space: "space", Enter: "return", Escape: "escape", Tab: "tab",
+  ShiftLeft: "left shift", ShiftRight: "right shift",
+  ControlLeft: "left ctrl", ControlRight: "right ctrl",
+  AltLeft: "left alt", AltRight: "right alt",
+  Backspace: "backspace", CapsLock: "caps lock",
 };
 
 export function keyName(code) {
   if (KEY_NAMES[code]) return KEY_NAMES[code];
   if (code.startsWith("Key")) return code.slice(3).toLowerCase();
   if (code.startsWith("Digit")) return code.slice(5);
-  if (code.startsWith("Numpad")) return "KP_" + code.slice(6);
-  return code.toUpperCase();
+  if (code.startsWith("Numpad")) return "kp_" + code.slice(6).toLowerCase();
+  return code.toLowerCase();
 }
 
 export function keyDisplayName(code) {

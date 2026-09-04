@@ -1,5 +1,11 @@
 /* Blade Hymn — browser port shell */
 
+@font-face {
+  font-family: PixelifySans;
+  src: url("data/ttf/PixelifySans.ttf");
+  font-display: block;
+}
+
 :root {
   --bg: #0d0f14;
   --panel: #161a22;

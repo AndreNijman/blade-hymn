@@ -8,12 +8,13 @@ import { GAME_WIDTH, GAME_HEIGHT } from "./constants.js";
 import { Timer } from "./timer.js";
 import { Sprite, Transition } from "./sprite.js";
 import { Group, MenuSprites, ParallaxSprites } from "./groups.js";
-import { Text, Button, SelectionIndicator } from "./ui.js";
-import { surface } from "./gfx.js";
+import { Text, TextSpriteLabel, Button, SelectionIndicator } from "./ui.js";
+import { surface, scale } from "./gfx.js";
 import { input } from "./input.js";
 
 export class MainMenu {
-  constructor(bg_frames, ui_frames, audio_files) {
+  constructor(bg_frames, ui_frames, audio_files, images = {}) {
+    this.images = images;
     // groups
     this.sprites = new Group();
     this.bg_sprites = new ParallaxSprites();
@@ -42,10 +43,13 @@ export class MainMenu {
     this.out_transition = new Transition(1000, 255, "black", [this.sprites]);
     this.in_transition = new Transition(2000, 0, "black", [this.sprites]);
 
-    this.bg_frames = {};
+    this.bg_frames = bg_frames;
+    // The original's menu scales the SHARED bg frame lists in place (466x280),
+    // so the levels built afterwards re-scale from that — replicate exactly.
     for (const [name, scene] of Object.entries(bg_frames)) {
-      this.bg_frames[name] = scene.map((image) => surfaceScaled(image, GAME_WIDTH + 40, GAME_HEIGHT + 40));
+      bg_frames[name] = scene.map((image) => scale(image, GAME_WIDTH + 40, GAME_HEIGHT + 40));
     }
+    this.bg_frames = bg_frames;
 
     this.music.playBgm(`${this.level_selection}_bgm`);
     this.setup(ui_frames.menu);
@@ -53,11 +57,14 @@ export class MainMenu {
 
   setup(ui_frames) {
     new Sprite([20, -5], ui_frames.title[0], [this.sprites, this.graphic_sprites], 99);
-    new Text([30, 92], "Ve rdant Begi nni ngs", 11, [this.text_sprites]);
-    new Text([30, 132], "Frosted Path", 11, [this.text_sprites]);
-    new Text([30, 172], "Cri mson Desolation", 11, [this.text_sprites]);
+    // The original's pygame font rendering swallows 'e' glyphs at this size
+    // (its strings are written with spacing workarounds). These three labels
+    // are static, so they are pre-rendered with pygame itself for exactness.
+    new TextSpriteLabel([30, 92], this.images["label-spring"], [this.text_sprites]);
+    new TextSpriteLabel([30, 132], this.images["label-winter"], [this.text_sprites]);
+    new TextSpriteLabel([30, 172], this.images["label-desert"], [this.text_sprites]);
 
-    const button_image = surfaceScaled(ui_frames.level_selection[0], this.button_size[0], this.button_size[1]);
+    const button_image = scale(ui_frames.level_selection[0], this.button_size[0], this.button_size[1]);
     new Button("spring", [20, 100], button_image, [this.sprites, this.button_sprites]);
     new Button("winter", [20, 140], button_image, [this.sprites, this.button_sprites]);
     new Button("desert", [20, 180], button_image, [this.sprites, this.button_sprites]);
@@ -67,7 +74,7 @@ export class MainMenu {
       this.selection_pos, this.button_size, 5, [this.sprites, this.graphic_sprites], 1);
 
     const graphic = surface(170, GAME_WIDTH);
-    graphic.getContext("2d").fillStyle = "rgba(0, 0, 0, 127 / 255)";
+    graphic.getContext("2d").fillStyle = "rgba(0, 0, 0, 0.498039)";
     graphic.getContext("2d").fillRect(0, 0, 170, GAME_WIDTH);
     new Sprite([0, 0], graphic, [this.sprites, this.graphic_sprites], 0);
 
@@ -103,6 +110,7 @@ export class MainMenu {
     for (let frame = 0; frame < frames.length; frame++) {
       new Sprite([0, 0], frames[frame], [this.sprites, this.bg_sprites], frame);
     }
+    this.bg_sprites.invalidate();
   }
 
   update_timers() {
@@ -146,10 +154,4 @@ class TextSpritesWrapper extends Group {
   }
 }
 
-function surfaceScaled(image, w, h) {
-  const c = surface(w, h);
-  const ctx = c.getContext("2d");
-  ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(image, 0, 0, image.width, image.height, 0, 0, w, h);
-  return c;
-}
+// (pygame's surfaceScaled was replaced by gfx.scale for exact parity)

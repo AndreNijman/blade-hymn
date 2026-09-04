@@ -176,17 +176,27 @@ export async function loadTmx(path) {
   }
   tilesets.sort((a, b) => a.firstgid - b.firstgid);
 
-  // gid -> image, highest firstgid <= gid wins
-  map.imageForGid = (gid) => {
+  // gid -> image, highest firstgid <= gid wins. Tiled packs flip/rotate bits
+  // into the high bits of the gid; pytmx applies them to the tile image
+  // (util_pygame: diagonal = rotate 270 then flip horizontally, then H/V).
+  map.imageForGid = (rawGid) => {
+    const flipped_h = rawGid & 0x80000000;
+    const flipped_v = rawGid & 0x40000000;
+    const flipped_d = rawGid & 0x20000000;
+    const gid = rawGid & 0x1FFFFFFF;
     for (let i = tilesets.length - 1; i >= 0; i--) {
       const { firstgid, tileset } = tilesets[i];
       if (gid >= firstgid) {
         const localId = gid - firstgid;
+        let image;
         if (tileset.image) {
           // single-sheet tileset: slice by grid position
-          return sheetTile(tileset, localId);
+          image = sheetTile(tileset, localId);
+        } else {
+          image = tileset.tiles.get(localId) || null;
         }
-        return tileset.tiles.get(localId) || null;
+        if (!image) return null;
+        return orientTile(image, flipped_h, flipped_v, flipped_d);
       }
     }
     return null;
@@ -223,4 +233,47 @@ function sheetTile(tileset, localId) {
   ctx.drawImage(tileset.image, sx, sy, tileset.tileWidth, tileset.tileHeight, 0, 0, tileset.tileWidth, tileset.tileHeight);
   cache.set(localId, c);
   return c;
+}
+
+// pygame.transform.rotate(270) + pygame.transform.flip equivalents, cached.
+const orientCache = new Map();
+function orientTile(image, h, v, d) {
+  const key = image;
+  let cache = orientCache.get(key);
+  if (!cache) {
+    cache = new Map();
+    orientCache.set(key, cache);
+  }
+  const sig = `${h ? 1 : 0}${v ? 1 : 0}${d ? 1 : 0}`;
+  if (cache.has(sig)) return cache.get(sig);
+  let out = image;
+  if (d) out = flipImage(rotate270(out), true, false); // pytmx util_pygame order
+  if (h || v) out = flipImage(out, Boolean(h), Boolean(v));
+  cache.set(sig, out);
+  return out;
+}
+
+function transformImage(image, w, h, fn) {
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  fn(c.getContext("2d"));
+  return c;
+}
+
+function rotate270(image) {
+  // pygame.transform.rotate(image, 270): 270° counterclockwise = 90° clockwise
+  return transformImage(image, image.height, image.width, (ctx) => {
+    ctx.translate(image.height, 0);
+    ctx.rotate(Math.PI / 2);
+    ctx.drawImage(image, 0, 0);
+  });
+}
+
+function flipImage(image, horizontally, vertically) {
+  return transformImage(image, image.width, image.height, (ctx) => {
+    ctx.translate(horizontally ? image.width : 0, vertically ? image.height : 0);
+    ctx.scale(horizontally ? -1 : 1, vertically ? -1 : 1);
+    ctx.drawImage(image, 0, 0);
+  });
 }

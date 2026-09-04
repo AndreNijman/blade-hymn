@@ -24,13 +24,114 @@ export function blit(ctx, image, x, y, alpha = null) {
   }
 }
 
-// pygame.transform.scale — nearest-neighbour rescale onto a new surface.
+// pygame.transform.scale — rescaled onto a new surface with pygame's exact
+// per-destination-pixel source sampling (measured empirically per size pair
+// in js/scale-maps.json; canvas drawImage rounds differently, which shifts
+// the scaled parallax art by a pixel).
+import scaleMaps from "./scale-maps.json" with { type: "json" };
+
 export function scale(image, w, h) {
+  w = Math.trunc(w);
+  h = Math.trunc(h);
+  const c = surface(w, h);
+  if (w <= 0 || h <= 0 || image.width === 0 || image.height === 0) return c;
+  const map = scaleMaps[`${image.width}x${image.height}->${w}x${h}`];
+  if (!map) {
+    // fallback: centre sampling (close to pygame, exact for the mapped sizes)
+    const sctx = image.getContext ? image.getContext("2d") : null;
+    const src = sctx ? sctx.getImageData(0, 0, image.width, image.height) : imageDataFromImage(image);
+    const out = c.getContext("2d").createImageData(w, h);
+    const sd = src.data, od = out.data;
+    for (let y = 0; y < h; y++) {
+      const sy = Math.trunc((y + 0.5) * image.height / h);
+      const srow = sy * image.width * 4;
+      for (let x = 0; x < w; x++) {
+        const sx = Math.trunc((x + 0.5) * image.width / w) * 4;
+        const si = srow + sx;
+        const di = (y * w + x) * 4;
+        od[di] = sd[si];
+        od[di + 1] = sd[si + 1];
+        od[di + 2] = sd[si + 2];
+        od[di + 3] = sd[si + 3];
+      }
+    }
+    c.getContext("2d").putImageData(out, 0, 0);
+    return c;
+  }
+  const sctx = image.getContext ? image.getContext("2d") : null;
+  const src = sctx ? sctx.getImageData(0, 0, image.width, image.height) : imageDataFromImage(image);
+  const out = c.getContext("2d").createImageData(w, h);
+  const sd = src.data, od = out.data;
+  for (let y = 0; y < h; y++) {
+    const sy = map.y[y] * image.width * 4;
+    for (let x = 0; x < w; x++) {
+      const si = sy + map.x[x] * 4;
+      const di = (y * w + x) * 4;
+      od[di] = sd[si];
+      od[di + 1] = sd[si + 1];
+      od[di + 2] = sd[si + 2];
+      od[di + 3] = sd[si + 3];
+    }
+  }
+  c.getContext("2d").putImageData(out, 0, 0);
+  return c;
+}
+
+// pygame's per-pixel alpha blend of a white (255,255,255,50) veil over an
+// opaque pixel, measured from the original's blit output (SDL's integer
+// rasteriser, not plain rounding). Pure per-channel lookup, and stacking the
+// veil composes through the same table, so composites are veiled exactly.
+import veilLut from "./veil-lut.json" with { type: "json" };
+
+export const VEIL_LUT = Uint8Array.from(veilLut);
+
+export function blendVeil(canvas) {
+  const ctx = canvas.getContext("2d");
+  const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const d = img.data;
+  for (let i = 0; i < d.length; i += 4) {
+    d[i] = VEIL_LUT[d[i]];
+    d[i + 1] = VEIL_LUT[d[i + 1]];
+    d[i + 2] = VEIL_LUT[d[i + 2]];
+  }
+  ctx.putImageData(img, 0, 0);
+}
+
+// pygame blend of the (0,0,0,127) dark panel over a pixel — used for the
+// pre-composited menu pieces where the backdrop is static.
+export function shadeBlend(image) {
+  const w = image.width, h = image.height;
   const c = surface(w, h);
   const ctx = c.getContext("2d");
-  ctx.imageSmoothingEnabled = false;
-  if (w > 0 && h > 0) ctx.drawImage(image, 0, 0, image.width, image.height, 0, 0, w, h);
+  const src = imageDataOf(image);
+  const d = src.data;
+  for (let i = 0; i < d.length; i += 4) {
+    if (d[i + 3] === 255) {
+      d[i] = (d[i] * 128 + 127) >> 8;
+      d[i + 1] = (d[i + 1] * 128 + 127) >> 8;
+      d[i + 2] = (d[i + 2] * 128 + 127) >> 8;
+    }
+  }
+  ctx.putImageData(src, 0, 0);
   return c;
+}
+
+function imageDataOf(image) {
+  const c = document.createElement("canvas");
+  c.width = image.width;
+  c.height = image.height;
+  const ctx = c.getContext("2d");
+  ctx.drawImage(image, 0, 0);
+  return ctx.getImageData(0, 0, image.width, image.height);
+}
+
+function imageDataFromImage(image) {
+  const c = document.createElement("canvas");
+  c.width = image.width;
+  c.height = image.height;
+  const ctx = c.getContext("2d");
+  ctx.drawImage(image, 0, 0);
+  return ctx.getImageData(0, 0, image.width, image.height);
 }
 
 // pygame.transform.flip horizontally, cached per source image.

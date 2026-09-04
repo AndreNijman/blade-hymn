@@ -1,7 +1,7 @@
 // Ported from code/groups.py of Eason-F/Blade-Hymn.
 
 import { GAME_WIDTH, GAME_HEIGHT } from "./constants.js";
-import { surface, blit } from "./gfx.js";
+import { surface, blit, scale, blendVeil } from "./gfx.js";
 
 // Base sprite container preserving pygame.Group semantics: insertion order,
 // add/remove/empty/update, sprites know their groups.
@@ -82,7 +82,7 @@ export class CameraLockedSprites extends Group {
 export class AllSprites extends CameraLockedSprites {
   constructor(width, height, bg_tiles, colour) {
     super(width, height);
-    this.bg_tiles = bg_tiles.map((tile) => scaleSurface(tile, GAME_WIDTH, GAME_HEIGHT));
+    this.bg_tiles = bg_tiles.map((tile) => scale(tile, GAME_WIDTH, GAME_HEIGHT));
     this.colour = colour;
     this.tile_width = GAME_WIDTH;
     this.tiles = 5;
@@ -101,9 +101,8 @@ export class AllSprites extends CameraLockedSprites {
     const bottom = (y * ((this.bg_tiles.length - 1) / 25)) - 5 + GAME_HEIGHT;
     ctx.fillStyle = this.colour;
     ctx.fillRect(0, bottom, GAME_WIDTH, GAME_HEIGHT);
-    // the original's desaturate_surf: a translucent white veil over the scene
-    ctx.fillStyle = "rgba(255, 255, 255, 50 / 255)";
-    ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+    // the original's desaturate_surf veil over the composed backdrop
+    blendVeil(ctx.canvas);
   }
 
   draw(ctx, target_pos) {
@@ -128,7 +127,7 @@ export class TextSprites extends CameraLockedSprites {
   draw(ctx, target_pos) {
     this.update_offset(target_pos);
     for (const sprite of this) {
-      sprite.draw(ctx, this.offset);
+      sprite.draw(ctx, [this.offset.x, this.offset.y]);
     }
   }
 }
@@ -189,28 +188,49 @@ export class MenuSprites extends Group {
 }
 
 // Menu parallax: reacts to the mouse position, each layer moving at z/50.
+// pygame blits the desaturate veil after every layer, so the composite is
+// rebuilt (with the exact veil LUT) whenever the parallax offset changes.
 export class ParallaxSprites extends CameraLockedSprites {
   constructor() {
     super(GAME_WIDTH, GAME_HEIGHT);
     this.tile_width = GAME_WIDTH;
+    this.composite = surface(GAME_WIDTH, GAME_HEIGHT);
+    this.lastOffset = null;
+    this.dirty = true;
+  }
+
+  invalidate() {
+    this.dirty = true;
   }
 
   draw(ctx, target_pos) {
     this.handle_offset(target_pos);
-    const sorted = [...this.spritesList].sort((a, b) => a.z - b.z);
-    for (const sprite of sorted) {
-      const speed = sprite.z / 50;
-      blit(ctx, sprite.image, this.offset.x * speed - 20, this.offset.y * speed - 10, sprite.alpha);
-      ctx.fillStyle = "rgba(255, 255, 255, 50 / 255)";
-      ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+    const key = `${this.offset.x}|${this.offset.y}|${this.dirty}`;
+    if (this.lastOffset !== key) {
+      const cctx = this.composite.getContext("2d");
+      cctx.fillStyle = "#000000"; // pygame's MASTER_DISPLAY starts opaque black
+      cctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+      const sorted = [...this.spritesList].sort((a, b) => a.z - b.z);
+      for (const sprite of sorted) {
+        const speed = sprite.z / 50;
+        cctx.drawImage(sprite.image,
+          Math.trunc(this.offset.x * speed - 20), Math.trunc(this.offset.y * speed - 10));
+        // pygame blits desaturate_surf after every parallax layer
+        blendVeil(this.composite);
+      }
+      this.lastOffset = key;
+      this.dirty = false;
     }
+    ctx.drawImage(this.composite, 0, 0);
   }
 }
 
 function scaleSurface(image, w, h) {
-  const c = surface(w, h);
-  const sctx = c.getContext("2d");
-  sctx.imageSmoothingEnabled = false;
-  sctx.drawImage(image, 0, 0, image.width, image.height, 0, 0, w, h);
-  return c;
+  return scale(image, w, h);
+}
+void scaleSurface;
+
+function hexToRgb(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }

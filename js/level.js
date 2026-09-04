@@ -2,14 +2,16 @@
 
 import { TILE_SIZE, PlAYER_HEALTH, BG_FILL, Z_VALUES } from "./constants.js";
 import { buildTextTags } from "./text.js";
+import { binds, ACTIONS, DEFAULT_BINDS } from "./settings.js";
 import { Sprite, Transition } from "./sprite.js";
 import { Group, AllSprites, AttackingSprites, HitboxSprites, UISprites, TextSprites } from "./groups.js";
 import { Player } from "./player.js";
 import { BasicSwordsman, BossSamurai, BossArcher } from "./enemies.js";
-import { HealthBar, CounterToken, Counter, Text } from "./ui.js";
+import { HealthBar, CounterToken, Counter, Text, TextSpriteLabel } from "./ui.js";
 
 export class Level {
-  constructor(name, tmx_map, ui_frames, level_frames, audio_files, player_frames, attack_impact_frames) {
+  constructor(name, tmx_map, ui_frames, level_frames, audio_files, player_frames, attack_impact_frames, images = {}) {
+    this.images = images;
     this.name = name;
 
     // entities
@@ -45,6 +47,11 @@ export class Level {
 
   setup(tmx_map, level_frames, audio_files, player_frames, attack_impact_frames) {
     const textTags = buildTextTags();
+    // with default binds the tutorial text is a pygame-pre-rendered bitmap
+    // (exact glyph parity with the original); custom binds fall back to the
+    // canvas renderer, which approximates the original's font quirks
+    const defaultBinds = ACTIONS.every((a) => binds[a] === DEFAULT_BINDS[a]);
+    const tutorialImage = (tag) => defaultBinds ? this.images["tutorial-" + tag] : null;
 
     for (const [x, y, surf] of tmx_map.getLayer("ground").tiles()) {
       new Sprite([x * TILE_SIZE, y * TILE_SIZE], surf, [this.all_sprites, this.collision_sprites], Z_VALUES.ground);
@@ -77,12 +84,17 @@ export class Level {
 
     for (const obj of tmx_map.getLayer("objects").objects) {
       if (obj.name === "text") {
-        new Text(
-          [obj.x, obj.y],
-          textTags[obj.context][obj.tag],
-          12,
-          [this.text_sprites]
-        );
+        const img = tutorialImage(obj.tag);
+        if (img) {
+          new TextSpriteLabel([obj.x, obj.y], img, [this.text_sprites]);
+        } else {
+          new Text(
+            [obj.x, obj.y],
+            textTags[obj.context][obj.tag],
+            12,
+            [this.text_sprites]
+          );
+        }
       } else if (["sbasic", "dbasic", "wbasic"].includes(obj.name)) {
         new BasicSwordsman({
           pos: [obj.x, obj.y],

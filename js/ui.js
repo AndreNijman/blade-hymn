@@ -2,7 +2,7 @@
 
 import { Z_VALUES, ANIMATION_SPEED } from "./constants.js";
 import { Sprite, AnimatedSprite } from "./sprite.js";
-import { surface, scale } from "./gfx.js";
+import { surface, scale, blit } from "./gfx.js";
 
 // pygame Surface.set_colorkey('black'): pure-black pixels become transparent.
 function colorkeyBlack(canvas) {
@@ -98,10 +98,19 @@ export class Counter extends AnimatedSprite {
 export class Text extends Sprite {
   constructor(pos, text, size, groups = null) {
     super(pos, surface(0, 0), groups, 0);
-    this.text = text.split("\n");
+    this.text = Text.gameText(text, size).split("\n");
     this.size = size;
     this.pos = pos;
     this.customDraw = true;
+  }
+
+  // pygame's font rasteriser (SDL_ttf, the version the original game ships
+  // with) renders 'e' with zero ink and zero advance at these small sizes;
+  // the game's tutorial text ships looking like "Mov with RIGHT and L FT."
+  // — reproduce that quirk so the port is indistinguishable.
+  static gameText(text, size) {
+    if (size > 12) return text;
+    return text.replace(/e/g, "");
   }
 
   draw(ctx, offset) {
@@ -111,6 +120,19 @@ export class Text extends Sprite {
     this.text.forEach((line, i) => {
       ctx.fillText(line, this.pos[0] + offset[0], this.pos[1] + i * this.size + 1 + offset[1]);
     });
+  }
+}
+
+// Static label bitmap pre-rendered with pygame (menu stage labels).
+export class TextSpriteLabel extends Sprite {
+  constructor(pos, image, groups = null, z = 0) {
+    super(pos, image, groups, z);
+    this.pos = pos;
+    this.customDraw = true;
+  }
+
+  draw(ctx, offset) {
+    blit(ctx, this.image, this.pos[0] + offset[0], this.pos[1] + offset[1]);
   }
 }
 

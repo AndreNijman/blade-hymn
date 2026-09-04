@@ -27,3 +27,7 @@ export class Random {
 
 // The game's single shared RNG, reseeded at the start of each attempt.
 export const random = new Random();
+
+export function reseed(seed = 0x1337) {
+  random.state = seed >>> 0;
+}

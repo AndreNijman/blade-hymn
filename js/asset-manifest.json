@@ -407,5 +407,16 @@
    "assets/graphics/enemies/wbasic/walk/6.png"
   ]
  },
- "singles": {}
+ "singles": {
+  "label-spring": "assets/graphics/ui/menu/label-spring.png",
+  "label-winter": "assets/graphics/ui/menu/label-winter.png",
+  "label-desert": "assets/graphics/ui/menu/label-desert.png",
+  "tutorial-movement": "assets/graphics/ui/tutorial-movement.png",
+  "tutorial-jump": "assets/graphics/ui/tutorial-jump.png",
+  "tutorial-dash": "assets/graphics/ui/tutorial-dash.png",
+  "tutorial-attack": "assets/graphics/ui/tutorial-attack.png",
+  "tutorial-air_attack": "assets/graphics/ui/tutorial-air_attack.png",
+  "tutorial-heal": "assets/graphics/ui/tutorial-heal.png",
+  "tutorial-level_end": "assets/graphics/ui/tutorial-level_end.png"
+ }
 }

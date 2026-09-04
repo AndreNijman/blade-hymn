@@ -15,6 +15,7 @@ import { MainMenu } from "./menu.js";
 import { Timer } from "./timer.js";
 import { input, attachInput } from "./input.js";
 import { loadBinds } from "./settings.js";
+import { reseed } from "./random.js";
 import { gameHooks } from "./shell.js";
 
 void Player;
@@ -87,7 +88,7 @@ class Game {
     log("tmx ok");
 
     this.stages = {
-      main_menu: new MainMenu(this.level_frames.bg_tiles, this.ui_frames, this.audio),
+      main_menu: new MainMenu(this.level_frames.bg_tiles, this.ui_frames, this.audio, this.assets.images),
       test: this.makeLevel("test"),
       spring: this.makeLevel("spring"),
       winter: this.makeLevel("winter"),
@@ -100,7 +101,7 @@ class Game {
 
   makeLevel(name) {
     const level = new Level(name, this.tmx_data[name], this.ui_frames, this.level_frames,
-      this.audio, this.player_frames, this.attack_impact_frames);
+      this.audio, this.player_frames, this.attack_impact_frames, this.assets.images);
     level.display_ctx = this.display_ctx;
     return level;
   }
@@ -117,6 +118,9 @@ class Game {
     this.audio.stop();
     if (this.current_stage instanceof Level) {
       this.audio.playBgm(`${this.current_stage.name}_bgm`);
+      // every attempt faces identical AI decisions, and the RNG stream starts
+      // from the same state the original's first attempt sees
+      reseed(0x1337);
       // a fresh attempt: the timer arms when the fade-in finishes
       this.run = { armed: true, running: false, startTicks: 0, finalMs: null };
     }
