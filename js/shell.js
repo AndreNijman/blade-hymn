@@ -254,6 +254,8 @@ function wire() {
       capturing = null;
     }
   });
+  document.getElementById("btn-credits").addEventListener("click", () => openModal("credits-modal"));
+  document.getElementById("credits-close").addEventListener("click", () => closeModal("credits-modal"));
   document.getElementById("lb-play").addEventListener("click", () => {
     const tab = document.querySelector(".lb-tab.active");
     closeModal("leaderboard-modal");

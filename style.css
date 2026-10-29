@@ -27,10 +27,11 @@ body {
   color: var(--text);
 }
 
-/* slim bar above a game that fills the rest of the viewport, like the
-   original's FULLSCREEN | SCALED window */
+/* the games frame supplies the title and credit; this strip only holds the
+   web additions above a game that fills the rest, like the original's
+   FULLSCREEN | SCALED window */
 .bar {
-  height: 40px;
+  height: 36px;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -38,17 +39,6 @@ body {
   border-bottom: 1px solid var(--line);
   background: var(--panel);
 }
-
-.bar h1 {
-  margin: 0;
-  font-size: 18px;
-  letter-spacing: 1px;
-  font-family: PixelifySans, "Courier New", monospace;
-  white-space: nowrap;
-}
-
-.byline { margin: 0; color: var(--muted); font-size: 13px; white-space: nowrap; }
-.byline a { color: var(--accent); }
 
 .run-timer {
   margin-left: auto;
@@ -64,8 +54,8 @@ body {
 
 .screen {
   position: relative;
-  height: calc(100vh - 40px);
-  height: calc(100svh - 40px);
+  height: calc(100vh - 36px);
+  height: calc(100svh - 36px);
   display: grid;
   place-items: center;
   overflow: hidden;
@@ -76,7 +66,7 @@ body {
 
 #game-surface {
   display: block;
-  width: min(100vw, (100svh - 40px) * 426 / 240);
+  width: min(100vw, (100svh - 36px) * 426 / 240);
   aspect-ratio: 426 / 240;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
@@ -149,8 +139,7 @@ kbd {
   font-size: 12px;
 }
 
-.credits { max-width: 720px; margin: 0 auto; padding: 16px 16px 32px; font-size: 13.5px; line-height: 1.55; color: var(--text); }
-.credits a { color: var(--accent); }
+.modal a { color: var(--accent); }
 .muted { color: var(--muted); }
 
 /* submit modal */
@@ -188,6 +177,5 @@ kbd {
 .bind-key.capturing { border-color: var(--accent); color: var(--accent); }
 
 @media (max-width: 560px) {
-  .byline { display: none; }
   .tools button { padding: 4px 7px; }
 }

@@ -3,12 +3,12 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Blade Hymn — a platformer battle game by Eason</title>
-  <meta name="description" content="Play Blade Hymn, a free browser sword-fighting platformer made by Eason: three hand-crafted stages, three bosses, dash combos and per-stage speedrun leaderboards." />
+  <title>Blade Hymn — Eason's platformer, ported to the browser</title>
+  <meta name="description" content="Play Blade Hymn, Eason's free sword-fighting platformer, ported to the browser: three hand-crafted stages, three bosses, dash combos and per-stage speedrun leaderboards." />
   <meta name="author" content="Eason" />
   <link rel="canonical" href="https://bladehymn.andrenijman.com/" />
-  <meta property="og:title" content="Blade Hymn — by Eason" />
-  <meta property="og:description" content="A free sword-fighting platformer by Eason. Three stages, three bosses, global speedrun leaderboards." />
+  <meta property="og:title" content="Blade Hymn — Eason's game, ported to the browser" />
+  <meta property="og:description" content="Eason's sword-fighting platformer, ported to the browser. Three stages, three bosses, global speedrun leaderboards." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://bladehymn.andrenijman.com/" />
   <meta property="og:image" content="https://bladehymn.andrenijman.com/bladehymn-card.png" />
@@ -24,7 +24,7 @@
     "@type": "VideoGame",
     "name": "Blade Hymn",
     "url": "https://bladehymn.andrenijman.com/",
-    "description": "A free sword-fighting platformer made by Eason: three hand-crafted stages, three bosses, dash combos and per-stage speedrun leaderboards.",
+    "description": "Eason's sword-fighting platformer, ported to the browser: three hand-crafted stages, three bosses, dash combos and per-stage speedrun leaderboards.",
     "genre": ["Platformer", "Action"],
     "gamePlatform": "Web browser",
     "author": { "@type": "Person", "name": "Eason", "url": "https://github.com/Eason-F" },
@@ -34,12 +34,11 @@
 </head>
 <body>
   <header class="bar">
-    <h1>Blade Hymn</h1>
-    <p class="byline">a game by <a href="https://github.com/Eason-F/Blade-Hymn" rel="noopener">Eason</a></p>
     <output id="run-timer" class="run-timer" hidden aria-label="Speedrun time">0:00.00</output>
     <nav class="tools" aria-label="Game tools">
       <button id="btn-leaderboard" type="button">Speedruns</button>
       <button id="btn-keybinds" type="button">Keys</button>
+      <button id="btn-credits" type="button">Credits</button>
       <button id="btn-fullscreen" type="button">Fullscreen</button>
     </nav>
   </header>
@@ -84,6 +83,23 @@
         </div>
       </section>
 
+      <section id="credits-modal" class="modal" hidden aria-label="Credits">
+        <h2>Blade Hymn</h2>
+        <p><strong>Blade Hymn</strong> is <a href="https://github.com/Eason-F" rel="noopener" target="_blank">Eason</a>'s game,
+          designed and written in Python/Pygame (<a href="https://github.com/Eason-F/Blade-Hymn" rel="noopener" target="_blank">source</a>),
+          ported to the browser by Andre Nijman and hosted with permission.</p>
+        <p class="muted">Asset credits, from the game's credits.txt:
+          player assets by <a href="https://xzany.itch.io/samurai-2d-pixel-art" rel="noopener" target="_blank">xzany</a> ·
+          boss enemy assets by <a href="https://craftpix.net/freebies/free-samurai-pixel-art-sprite-sheets" rel="noopener" target="_blank">CraftPix freebies</a> ·
+          parallax backgrounds by <a href="https://ansimuz.itch.io/mountain-dusk-parallax-background" rel="noopener" target="_blank">Ansimuz</a> and
+          <a href="https://free-game-assets.itch.io/nature-landscapes-free-pixel-art" rel="noopener" target="_blank">Free Game Assets</a>.</p>
+        <p class="muted">Click a stage to select it and again to start. Hold <kbd>Esc</kbd> for two seconds to return to the menu.
+          The speedrun clock starts when a stage has faded in and stops when its last enemy falls.</p>
+        <div class="modal-actions">
+          <button id="credits-close" type="button" class="primary">Close</button>
+        </div>
+      </section>
+
       <section id="keybinds-modal" class="modal" hidden aria-label="Key settings">
         <h2>Key bindings</h2>
         <p class="muted">Click a binding, then press the key you want. Binds save to this device and to your games.andrenijman.com account when signed in.</p>
@@ -96,17 +112,5 @@
     </div>
   </main>
 
-  <footer class="credits">
-    <p>Click a stage once to select it and again to start. Hold <kbd>Esc</kbd> for two seconds to return to the menu.
-      The speedrun clock starts when a stage has faded in and stops when its last enemy falls.</p>
-    <p><strong>Blade Hymn</strong> is made by <a href="https://github.com/Eason-F" rel="noopener">Eason</a>
-      (<a href="https://github.com/Eason-F/Blade-Hymn" rel="noopener">source</a>), who designed and built the
-      game in Python/Pygame. This is an unofficial browser port of that game, hosted with permission.</p>
-    <p class="muted">Asset credits, as recorded in the game's own credits.txt:
-      player assets by <a href="https://xzany.itch.io/samurai-2d-pixel-art" rel="noopener">xzany</a> ·
-      boss enemy assets by <a href="https://craftpix.net/freebies/free-samurai-pixel-art-sprite-sheets" rel="noopener">CraftPix freebies</a> ·
-      parallax backgrounds by <a href="https://ansimuz.itch.io/mountain-dusk-parallax-background" rel="noopener">Ansimuz</a> and
-      <a href="https://free-game-assets.itch.io/nature-landscapes-free-pixel-art" rel="noopener">Free Game Assets</a>.</p>
-  </footer>
 </body>
 </html>

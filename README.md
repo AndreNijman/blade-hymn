@@ -9,7 +9,7 @@ JavaScript/canvas port of that game plus web-native additions:
   `/_guard/bladehymn-runs`),
 - rebindable keys (`js/settings.js`), stored locally and synced to the signed-in
   account profile,
-- credit to Eason and the original asset authors (see the page footer).
+- credit to Eason and the original asset authors (the games frame and the Credits button).
 
 Deployed to GitHub Pages as `bladehymn.andrenijman.com` and proxied by the
 [games-site](https://github.com/AndreNijman/games-site) games-guard worker.
