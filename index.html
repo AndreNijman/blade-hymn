@@ -14,6 +14,8 @@
   <meta property="og:image" content="https://bladehymn.andrenijman.com/bladehymn-card.png" />
   <link rel="icon" href="assets/graphics/player/idle/1.png" />
   <link rel="stylesheet" href="style.css" />
+  <link rel="preload" href="data/baked/game.json" as="fetch" crossorigin />
+  <link rel="preload" href="data/baked/atlas.png" as="fetch" crossorigin />
   <script type="module" src="js/main.js"></script>
   <script type="module" src="js/shell.js"></script>
   <script type="application/ld+json">
@@ -31,75 +33,80 @@
   </script>
 </head>
 <body>
-  <main class="stage">
-    <header class="masthead">
-      <h1>Blade Hymn</h1>
-      <p class="byline">a game by <a href="https://github.com/Eason-F/Blade-Hymn" rel="noopener">Eason</a> · browser port with per-stage speedrun leaderboards</p>
-    </header>
+  <header class="bar">
+    <h1>Blade Hymn</h1>
+    <p class="byline">a game by <a href="https://github.com/Eason-F/Blade-Hymn" rel="noopener">Eason</a></p>
+    <output id="run-timer" class="run-timer" hidden aria-label="Speedrun time">0:00.00</output>
+    <nav class="tools" aria-label="Game tools">
+      <button id="btn-leaderboard" type="button">Speedruns</button>
+      <button id="btn-keybinds" type="button">Keys</button>
+      <button id="btn-fullscreen" type="button">Fullscreen</button>
+    </nav>
+  </header>
 
-    <div class="screen">
-      <canvas id="game-surface" width="426" height="240" aria-label="Blade Hymn game"></canvas>
-      <p id="loading" class="loading">Loading Blade Hymn…</p>
+  <main id="screen" class="screen">
+    <canvas id="game-surface" width="426" height="240" aria-label="Blade Hymn game"></canvas>
+    <p id="loading" class="loading">Loading Blade Hymn…</p>
 
-      <div id="overlay" class="overlay" hidden>
-        <section id="submit-modal" class="modal" hidden aria-label="Run complete">
-          <h2>Stage clear!</h2>
-          <p class="run-line"><span id="submit-level"></span> — <strong id="submit-time"></strong></p>
-          <p id="submit-as" class="muted"></p>
-          <p id="submit-name-field" hidden>
-            <label for="submit-name">Leaderboard name</label>
-            <input id="submit-name" maxlength="16" autocomplete="off" />
-          </p>
-          <p id="submit-status" class="muted" role="status"></p>
-          <div class="modal-actions">
-            <button id="submit-confirm" type="button" class="primary">Submit run</button>
-            <button id="submit-retry" type="button">Retry stage</button>
-            <button id="submit-close" type="button">Skip</button>
-          </div>
-        </section>
-
-        <section id="leaderboard-modal" class="modal" hidden aria-label="Speedrun leaderboard">
-          <h2>Speedruns</h2>
-          <div class="lb-tabs">
-            <button class="lb-tab active" data-level="spring" type="button">Verdant Beginnings</button>
-            <button class="lb-tab" data-level="winter" type="button">Frosted Path</button>
-            <button class="lb-tab" data-level="desert" type="button">Crimson Desolation</button>
-          </div>
-          <div id="leaderboard-list"></div>
-          <div class="modal-actions">
-            <button id="leaderboard-close" type="button">Close</button>
-            <button id="retry-footer" type="button" class="primary">Retry stage</button>
-          </div>
-        </section>
-
-        <section id="keybinds-modal" class="modal" hidden aria-label="Key settings">
-          <h2>Key bindings</h2>
-          <p class="muted">Click a binding, then press the key you want. Binds save to this device and to your games.andrenijman.com account when signed in.</p>
-          <div id="binds-list"></div>
-          <div class="modal-actions">
-            <button id="binds-reset" type="button">Reset to defaults</button>
-            <button id="keybinds-close" type="button" class="primary">Done</button>
-          </div>
-        </section>
-      </div>
+    <div id="closed" class="closed" hidden>
+      <p>Blade Hymn was closed.</p>
+      <button id="closed-restart" type="button" class="primary">Start again</button>
     </div>
 
-    <nav class="toolbar" aria-label="Game tools">
-      <button id="btn-leaderboard" type="button">Speedruns</button>
-      <button id="btn-keybinds" type="button">Key bindings</button>
-      <span class="toolbar-hint">Hold <kbd>Esc</kbd> to return to the menu</span>
-    </nav>
+    <div id="overlay" class="overlay" hidden>
+      <section id="submit-modal" class="modal" hidden aria-label="Run complete">
+        <h2>Stage clear!</h2>
+        <p class="run-line"><span id="submit-level"></span> — <strong id="submit-time"></strong></p>
+        <p id="submit-as" class="muted"></p>
+        <p id="submit-name-field" hidden>
+          <label for="submit-name">Leaderboard name</label>
+          <input id="submit-name" maxlength="16" autocomplete="off" />
+        </p>
+        <p id="submit-status" class="muted" role="status"></p>
+        <div class="modal-actions">
+          <button id="submit-confirm" type="button" class="primary">Submit run</button>
+          <button id="submit-retry" type="button">Retry stage</button>
+          <button id="submit-close" type="button">Skip</button>
+        </div>
+      </section>
 
-    <footer class="credits">
-      <p><strong>Blade Hymn</strong> is made by <a href="https://github.com/Eason-F" rel="noopener">Eason</a>
-        (<a href="https://github.com/Eason-F/Blade-Hymn" rel="noopener">source</a>), who designed and built the
-        game in Python/Pygame. This is an unofficial browser port of that game, hosted with permission.</p>
-      <p class="muted">Asset credits, as recorded in the game's own credits.txt:
-        player assets by <a href="https://xzany.itch.io/samurai-2d-pixel-art" rel="noopener">xzany</a> ·
-        boss enemy assets by <a href="https://craftpix.net/freebies/free-samurai-pixel-art-sprite-sheets" rel="noopener">CraftPix freebies</a> ·
-        parallax backgrounds by <a href="https://ansimuz.itch.io/mountain-dusk-parallax-background" rel="noopener">Ansimuz</a> and
-        <a href="https://free-game-assets.itch.io/nature-landscapes-free-pixel-art" rel="noopener">Free Game Assets</a>.</p>
-    </footer>
+      <section id="leaderboard-modal" class="modal" hidden aria-label="Speedrun leaderboard">
+        <h2>Speedruns</h2>
+        <div class="lb-tabs">
+          <button class="lb-tab active" data-level="spring" type="button">Verdant Beginnings</button>
+          <button class="lb-tab" data-level="winter" type="button">Frosted Path</button>
+          <button class="lb-tab" data-level="desert" type="button">Crimson Desolation</button>
+        </div>
+        <div id="leaderboard-list"></div>
+        <div class="modal-actions">
+          <button id="leaderboard-close" type="button">Close</button>
+          <button id="lb-play" type="button" class="primary">Play this stage</button>
+        </div>
+      </section>
+
+      <section id="keybinds-modal" class="modal" hidden aria-label="Key settings">
+        <h2>Key bindings</h2>
+        <p class="muted">Click a binding, then press the key you want. Binds save to this device and to your games.andrenijman.com account when signed in.</p>
+        <div id="binds-list"></div>
+        <div class="modal-actions">
+          <button id="binds-reset" type="button">Reset to defaults</button>
+          <button id="keybinds-close" type="button" class="primary">Done</button>
+        </div>
+      </section>
+    </div>
   </main>
+
+  <footer class="credits">
+    <p>Click a stage once to select it and again to start. Hold <kbd>Esc</kbd> for two seconds to return to the menu.
+      The speedrun clock starts when a stage has faded in and stops when its last enemy falls.</p>
+    <p><strong>Blade Hymn</strong> is made by <a href="https://github.com/Eason-F" rel="noopener">Eason</a>
+      (<a href="https://github.com/Eason-F/Blade-Hymn" rel="noopener">source</a>), who designed and built the
+      game in Python/Pygame. This is an unofficial browser port of that game, hosted with permission.</p>
+    <p class="muted">Asset credits, as recorded in the game's own credits.txt:
+      player assets by <a href="https://xzany.itch.io/samurai-2d-pixel-art" rel="noopener">xzany</a> ·
+      boss enemy assets by <a href="https://craftpix.net/freebies/free-samurai-pixel-art-sprite-sheets" rel="noopener">CraftPix freebies</a> ·
+      parallax backgrounds by <a href="https://ansimuz.itch.io/mountain-dusk-parallax-background" rel="noopener">Ansimuz</a> and
+      <a href="https://free-game-assets.itch.io/nature-landscapes-free-pixel-art" rel="noopener">Free Game Assets</a>.</p>
+  </footer>
 </body>
 </html>

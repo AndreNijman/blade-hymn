@@ -2,10 +2,8 @@
 // submission, and the key-bind settings screen. The game itself (js/main.js)
 // stays a faithful port; everything web-native lives here.
 
-import { ACTIONS, ACTION_LABELS, binds, setBind, resetBinds, keyDisplayName, onBindingsSaved } from "./settings.js";
-import { formatMs } from "./main.js";
-
-export const gameHooks = {};
+import { ACTIONS, ACTION_LABELS, binds, setBind, resetBinds, restoreBinds, savedAt, keyLabel, onBindsChanged } from "./settings.js";
+import { gameHooks, formatMs } from "./main.js";
 
 const LEVEL_NAMES = {
   spring: "Verdant Beginnings",
@@ -148,7 +146,7 @@ function renderBinds() {
     const key = document.createElement("button");
     key.type = "button";
     key.className = "bind-key" + (capturing === action ? " capturing" : "");
-    key.textContent = capturing === action ? "press a key…" : keyDisplayName(binds[action]);
+    key.textContent = capturing === action ? "press a key…" : keyLabel(binds[action]);
     key.addEventListener("click", () => {
       capturing = capturing === action ? null : action;
       renderBinds();
@@ -169,8 +167,8 @@ window.addEventListener("keydown", (e) => {
   renderBinds();
 }, true);
 
-onBindingsSaved((saved) => {
-  syncProfile(saved);
+onBindsChanged((saved, changedHere) => {
+  if (changedHere) syncProfile(saved);
 });
 
 async function syncProfile(keybinds) {
@@ -198,14 +196,9 @@ async function restoreProfile() {
     if (data.profile && data.profile.keybinds) {
       // account profile wins over a fresh device, unless the local binds were
       // changed on this device after the profile was last written
-      const localTs = +(localStorage.getItem("bladehymn_keybinds_ts") || 0);
       const profileTs = +(data.profile.keybinds.savedAt || 0);
-      if (profileTs >= localTs) {
-        for (const action of ACTIONS) {
-          if (typeof data.profile.keybinds[action] === "string") {
-            setBind(action, data.profile.keybinds[action]);
-          }
-        }
+      if (profileTs >= savedAt()) {
+        restoreBinds(data.profile.keybinds, profileTs);
         renderBinds();
       }
     }
@@ -243,7 +236,7 @@ function wire() {
   });
   document.getElementById("submit-retry").addEventListener("click", () => {
     closeModal("submit-modal");
-    gameHooks.startAttempt?.();
+    if (currentSubmit) gameHooks.startLevel?.(currentSubmit.level);
   });
   document.getElementById("leaderboard-close").addEventListener("click", () => closeModal("leaderboard-modal"));
   document.getElementById("keybinds-close").addEventListener("click", () => closeModal("keybinds-modal"));
@@ -261,13 +254,25 @@ function wire() {
       capturing = null;
     }
   });
-  document.getElementById("retry-footer").addEventListener("click", () => {
-    gameHooks.startAttempt?.();
+  document.getElementById("lb-play").addEventListener("click", () => {
+    const tab = document.querySelector(".lb-tab.active");
+    closeModal("leaderboard-modal");
+    gameHooks.startLevel?.(tab ? tab.dataset.level : "spring");
   });
+  document.getElementById("btn-fullscreen").addEventListener("click", () => {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.getElementById("screen").requestFullscreen?.().catch(() => {});
+  });
+  document.getElementById("closed-restart").addEventListener("click", () => location.reload());
 }
 
 gameHooks.onRunComplete = (level, ms) => {
   showSubmit(level, ms);
+};
+
+// the menu's quit button: pygame.quit() closes the window
+gameHooks.onQuit = () => {
+  document.getElementById("closed").hidden = false;
 };
 
 (async function init() {

@@ -1,0 +1,12 @@
+{
+  "name": "blade-hymn",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node tools/perf-regression.mjs",
+    "test:parity": "node tools/parity/run.mjs"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^25.11.0"
+  }
+}

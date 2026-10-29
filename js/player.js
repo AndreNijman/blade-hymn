@@ -1,23 +1,24 @@
-// Ported from code/player.py of Eason-F/Blade-Hymn.
+// code/player.py
 
-import { GRAVITY, PlAYER_HEALTH, ANIMATION_SPEED, Z_VALUES } from "./constants.js";
+import { FRect, Sprite, Vector2, key, time, dist } from "./pg.js";
+import { flipX, whiteSilhouette } from "./surface.js";
+import { ANIMATION_SPEED, GRAVITY, PlAYER_HEALTH, Z_VALUES } from "./constants.js";
 import { binds } from "./settings.js";
-import { Timer, clock } from "./timer.js";
-import { Sprite, Hitbox, FRect } from "./sprite.js";
-import { flip, whiteMask } from "./gfx.js";
-import { input } from "./input.js";
+import { Timer } from "./timer.js";
+import { Hitbox, get_frect } from "./sprite.js";
 
 export class Player extends Sprite {
-  constructor({ pos, groups, collision_sprites, damage_sprites, frames, sounds, attack_data, level_dim }) {
-    super(pos, frames.idle[0], groups, Z_VALUES.player);
+  constructor(pos, groups, collision_sprites, damage_sprites, frames, sounds, attack_data, level_dim) {
+    super(groups);
 
     // animation
-    this.frames = frames;
-    this.frame_index = 0;
-    this.state = "idle";
-    this.direction = 1;
+    this.frames = frames; this.frame_index = 0;
+    this.state = "idle"; this.direction = 1;
+    this.image = this.frames[this.state][this.frame_index];
+    this.z = Z_VALUES.player;
 
     // hitbox rect
+    this.rect = get_frect(this.image, { topleft: pos });
     this.hitbox_rect = this.rect.inflate(-72, -32);
     this.prev_rect = this.hitbox_rect.copy();
 
@@ -26,7 +27,7 @@ export class Player extends Sprite {
     // movement
     this.gravity = GRAVITY;
     this.friction = 7;
-    this.velocity = { x: 0, y: 0 };
+    this.velocity = new Vector2(0, 0);
     this.acceleration = 20;
     this.speed = 60;
 
@@ -34,89 +35,91 @@ export class Player extends Sprite {
     this.jump_height = 300;
 
     this.dash_distance = this.acceleration * 20;
-    this.max_dash_count = 3;
-    this.dash_count = this.max_dash_count;
+    this.max_dash_count = 3; this.dash_count = this.max_dash_count;
 
     this.control_lock = false;
 
     // attack
     this.attack_data = attack_data;
-    this.is_attacking = false;
-    this.attack_combo = false;
-    this.attack_stage = -1;
-    this.attack_stage_count = 3;
+    this.is_attacking = this.attack_combo = false;
+    this.attack_stage = -1; this.attack_stage_count = 3;
     this.can_air_atk = true;
     this.can_atk_boost = true;
 
     // combat
     this.hp = PlAYER_HEALTH;
-    this.max_heal = 6;
-    this.heal_count = 6;
+    this.max_heal = this.heal_count = 6;
     this.heal_amount = 10 + this.hp / 5;
     this.fallen = false;
 
-    this.knocked_down = false;
-    this.vulnerable = true;
+    this.knocked_down = false; this.vulnerable = true;
     this.damaging_hitbox = null;
 
     this.damage_sprites = damage_sprites;
 
     // collisions
-    this.level_width = level_dim[0];
-    this.level_height = level_dim[1];
+    [this.level_width, this.level_height] = level_dim;
     this.collision_sprites = collision_sprites;
-    this.colliding = { ground: false, hitbox: false };
+    this.colliding = {
+      ground: false,
+      hitbox: false,
+    };
 
     // sounds
-    this.sounds = sounds;
+    this.swing_sound = sounds.swing;
+    this.dash_sound = sounds.dash;
 
     // timers
     this.timers = {
-      stun_recovery: new Timer(1500, { sustained: true }),
-      knocked_back: new Timer(300, { sustained: true }),
-      hit_cooldown: new Timer(400, { sustained: true }),
-      dash: new Timer(3000, { auto_start: true, repeat: true }),
-      dash_cooldown: new Timer(300, { sustained: true }),
-      dash_invulnerability: new Timer(250, { sustained: true }),
+      stun_recovery: new Timer(1500, false, false, true),
+      knocked_back: new Timer(300, false, false, true),
+      hit_cooldown: new Timer(400, false, false, true),
+      dash: new Timer(3000, true, true),
+      dash_cooldown: new Timer(300, false, false, true),
+      dash_invulnerability: new Timer(250, false, false, true),
       attack_combo: new Timer(200),
-      attack: new Timer(200, { sustained: true }),
-      heal_cooldown: new Timer(2000, { sustained: true }),
-      sound: new Timer(200, { sustained: true }),
+      attack: new Timer(200, false, false, true),
+      heal_cooldown: new Timer(2000, false, false, true),
+      sound: new Timer(200, false, false, true),
     };
   }
 
   input(dt) {
-    const movement = { x: 0, y: 0 };
+    const keys = key.get_pressed();
+    const movement_vect = new Vector2(0, 0);
 
     if (!this.control_lock) {
       if (!(this.state.includes("melee") && this.attack_combo)) {
-        if (input.down("LEFT_KEY")) {
-          movement.x -= this.acceleration;
+        if (keys[binds.LEFT_KEY]) {
+          movement_vect.x -= this.acceleration;
           this.direction = -1;
         }
-        if (input.down("RIGHT_KEY")) {
-          movement.x += this.acceleration;
+
+        if (keys[binds.RIGHT_KEY]) {
+          movement_vect.x += this.acceleration;
           this.direction = 1;
         }
       }
 
       if (!this.is_attacking) {
-        if (input.down("DASH_KEY")) {
-          movement.x = this.dash(movement.x);
-        } else if (input.down("HEAL_KEY")) {
+        if (keys[binds.DASH_KEY]) {
+          movement_vect.x = this.dash(movement_vect.x);
+        } else if (keys[binds.HEAL_KEY]) {
           this.heal();
         }
       }
 
-      this.velocity.x += movement.x * dt;
+      this.velocity.x += movement_vect.x * dt;
 
       if (this.colliding.ground || this.can_air_atk) {
-        if (input.down("ATTACK_KEY")) this.attack();
+        if (keys[binds.ATTACK_KEY]) {
+          this.attack();
+        }
       }
       this.attack_update();
 
       if (!this.attack_combo && this.colliding.ground) {
-        if (input.down("JUMP_KEY")) {
+        if (keys[binds.JUMP_KEY]) {
           this.is_jumping = true;
           this.can_air_atk = true;
         }
@@ -127,7 +130,7 @@ export class Player extends Sprite {
   // input related actions
   dash(speed) {
     if (this.dash_count > 0 && !this.timers.dash_cooldown.active) {
-      this.sounds.play("dash");
+      this.dash_sound.play();
       speed = this.dash_distance * this.direction;
 
       this.dash_count -= 1;
@@ -160,10 +163,15 @@ export class Player extends Sprite {
   }
 
   attack_update() {
-    if (this.colliding.ground) this.attack_stage_count = 3;
-    else this.attack_stage_count = 2;
+    if (this.colliding.ground) {
+      this.attack_stage_count = 3;
+    } else {
+      this.attack_stage_count = 2;
+    }
 
-    if (this.colliding.ground) this.can_air_atk = false;
+    if (this.colliding.ground) {
+      this.can_air_atk = false;
+    }
 
     if (this.state.includes("melee") || this.state.includes("air")) {
       if (this.frame_index >= this.frames[this.state].length) {
@@ -182,7 +190,7 @@ export class Player extends Sprite {
       this.is_attacking = false;
       this.attack_stage = -1;
 
-      if (this.state === "jump" || this.state === "fall") { // prevent continuous air attacks
+      if (this.state === "jump" || this.state === "fall") { // prevent continous air attacks
         this.can_air_atk = false;
       }
     }
@@ -190,31 +198,31 @@ export class Player extends Sprite {
 
   // movement related actions
   move(dt) {
-    if (this.state.includes("melee")) { // slight horizontal boost when attacking
+    if (this.state.includes("melee")) { // give slight horizontal boost when attacking
       if (this.can_atk_boost) {
         this.velocity.x = this.direction / 4;
         this.can_atk_boost = false;
       }
     }
 
-    const friction_factor = this.friction * -this.velocity.x;
-    this.velocity.x += (friction_factor / 2) * dt;
+    let friction_factor = this.friction * -this.velocity.x;
+    this.velocity.x += friction_factor / 2 * dt;
     this.velocity.x = Math.abs(this.velocity.x) < 1000 ? this.velocity.x : 1000;
     this.hitbox_rect.x += this.velocity.x * this.speed * dt;
-    this.velocity.x += (friction_factor / 2) * dt;
+    this.velocity.x += friction_factor / 2 * dt;
     this.surface_collisions("x");
 
-    if (this.state.includes("air")) { // slight vertical boost when air attacking
+    if (this.state.includes("air")) { // give slight vertical boost when air attacking
       if (this.can_atk_boost) {
         this.velocity.y = -this.jump_height / 1.7;
         this.can_atk_boost = false;
       }
     }
 
-    this.velocity.y += (this.gravity / 2) * dt;
+    this.velocity.y += this.gravity / 2 * dt;
     this.velocity.y = Math.abs(this.velocity.y) < 1000 ? this.velocity.y : 1000;
     this.hitbox_rect.y += this.velocity.y * dt;
-    this.velocity.y += (this.gravity / 2) * dt;
+    this.velocity.y += this.gravity / 2 * dt;
     this.surface_collisions("y");
 
     if (this.is_jumping) {
@@ -231,13 +239,13 @@ export class Player extends Sprite {
   }
 
   check_collisions() {
-    const ground_rect = FRect.from_point(this.hitbox_rect.bottomleft, [this.hitbox_rect.width, 2]);
-    const collide_rects = [...this.collision_sprites].map((s) => s.rect);
-    const damage_rects = [...this.damage_sprites].filter((s) => s.tag === "enemy");
+    const ground_rect = FRect.from(this.hitbox_rect.bottomleft, [this.hitbox_rect.width, 2]);
+    const collide_rects = this.collision_sprites.sprites().map((sprite) => sprite.rect);
+    const damage_rects = this.damage_sprites.sprites().filter((sprite) => sprite.tag === "enemy");
 
     this.colliding.ground = ground_rect.collidelist(collide_rects) >= 0;
 
-    this.damaging_hitbox = collideObjects(this.hitbox_rect, damage_rects);
+    this.damaging_hitbox = this.hitbox_rect.collideobjects(damage_rects, (x) => x.rect);
     this.colliding.hitbox = Boolean(this.damaging_hitbox);
   }
 
@@ -250,6 +258,7 @@ export class Player extends Sprite {
               this.hitbox_rect.left = sprite.rect.right;
             }
           }
+
           if (this.hitbox_rect.right >= sprite.rect.left) {
             if (Math.trunc(this.prev_rect.right) <= Math.trunc(sprite.prev_rect.left)) { // right
               this.hitbox_rect.right = sprite.rect.left;
@@ -261,6 +270,7 @@ export class Player extends Sprite {
               this.hitbox_rect.top = sprite.rect.bottom;
             }
           }
+
           if (this.hitbox_rect.bottom >= sprite.rect.top) {
             if (Math.trunc(this.prev_rect.bottom) <= Math.trunc(sprite.prev_rect.top)) { // down
               this.hitbox_rect.bottom = sprite.rect.top;
@@ -273,9 +283,8 @@ export class Player extends Sprite {
   }
 
   move_camera() {
-    const dx = this.hitbox_rect.center[0] - this.camera_rect.center[0];
-    const dy = this.hitbox_rect.center[1] - this.camera_rect.center[1];
-    let camera_speed = Math.sqrt(dx * dx + dy * dy) ** 2 / 10000;
+    let camera_speed = dist(this.hitbox_rect.center, this.camera_rect.center);
+    camera_speed = camera_speed * camera_speed / 10000;
     camera_speed = camera_speed < 100 ? camera_speed : 100;
     this.camera_rect.x += (this.hitbox_rect.x - this.camera_rect.x) * camera_speed;
     this.camera_rect.y += (this.hitbox_rect.y - this.camera_rect.y) * camera_speed - 10;
@@ -313,12 +322,18 @@ export class Player extends Sprite {
       if (this.knocked_down) {
         this.timers.stun_recovery.activate();
       }
+
       this.knocked_down = false;
       this.control_lock = false;
     }
 
-    if (this.timers.stun_recovery.active) this.control_lock = true;
-    if (this.timers.knocked_back.active) this.control_lock = true;
+    if (this.timers.stun_recovery.active) {
+      this.control_lock = true;
+    }
+
+    if (this.timers.knocked_back.active) {
+      this.control_lock = true;
+    }
   }
 
   check_damage() {
@@ -337,14 +352,16 @@ export class Player extends Sprite {
 
   take_damage(damage) {
     this.hp -= damage;
-    if (this.hp <= 0) this.fallen = true;
+    if (this.hp <= 0) {
+      this.fallen = true;
+    }
   }
 
   // animations
   animate(dt) {
     const frames = this.frames[this.state];
     this.image = frames[Math.trunc(this.frame_index % frames.length)];
-    this.image = this.direction > 0 ? this.image : flip(this.image);
+    this.image = this.direction > 0 ? this.image : flipX(this.image);
     this.frame_index += ANIMATION_SPEED * dt;
   }
 
@@ -357,24 +374,34 @@ export class Player extends Sprite {
       }
     } else {
       if (this.is_attacking) {
-        if (this.can_air_atk) this.state = `air${this.attack_stage + 1}`;
+        if (this.can_air_atk) {
+          this.state = `air${this.attack_stage + 1}`;
+        }
       } else {
-        this.state = this.velocity.y > 0 ? "jump" : "fall";
+        if (this.velocity.y > 0) {
+          this.state = "jump";
+        } else {
+          this.state = "fall";
+        }
       }
     }
 
-    if (this.timers.dash_cooldown.active) this.state = "dash";
+    if (this.timers.dash_cooldown.active) {
+      this.state = "dash";
+    }
   }
 
   hit_flicker() {
-    if (this.timers.hit_cooldown.active && Math.sin(clock.now() / 16) >= 0) {
-      this.image = whiteMask(this.image);
+    if (this.timers.hit_cooldown.active && Math.sin(time.get_ticks() / 16) >= 0) {
+      this.image = whiteSilhouette(this.image);
     }
   }
 
   // updates
   update_timers() {
-    for (const timer of Object.values(this.timers)) timer.update();
+    for (const timer of Object.values(this.timers)) {
+      timer.update();
+    }
   }
 
   update_hitboxes() {
@@ -382,7 +409,7 @@ export class Player extends Sprite {
       if (this.attack_data[this.state].impact.includes(Math.trunc(this.frame_index) + 1)) {
         this.timers.attack.activate();
         if (!this.timers.sound.active) {
-          this.sounds.play("swing");
+          this.swing_sound.play();
           this.timers.sound.activate();
         }
       }
@@ -391,8 +418,11 @@ export class Player extends Sprite {
     }
 
     if (this.timers.attack.active) {
-      new Hitbox("player", this.hitbox_rect.center, this.direction,
-        this.attack_data[this.state], this.damage_sprites);
+      new Hitbox("player",
+        this.hitbox_rect.center,
+        this.direction,
+        this.attack_data[this.state],
+        this.damage_sprites);
     }
   }
 
@@ -412,16 +442,4 @@ export class Player extends Sprite {
     this.animate(dt);
     this.hit_flicker();
   }
-}
-
-function stateName(s) {
-  return s;
-}
-
-// pygame Rect.collideobjects(objects, key=rect): first object whose rect hits.
-function collideObjects(rect, objects) {
-  for (const o of objects) {
-    if (rect.colliderect(o.rect)) return o;
-  }
-  return null;
 }
